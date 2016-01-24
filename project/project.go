@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"text/template"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -31,6 +32,9 @@ const (
 
 	// DefaultTimeout defines default timeout value (s) for every function in a project
 	DefaultTimeout = 3
+
+	// TimeFormat defines the default time format
+	TimeFormat = "02/01/2006 15:04"
 )
 
 // ErrNotFound is returned when a function cannot be found.
@@ -247,7 +251,7 @@ func (p *Project) FunctionNames() (list []string) {
 }
 
 // Logs returns logs.
-func (p *Project) Logs(s *session.Session, name string, filter string) (*logs.Logs, error) {
+func (p *Project) Logs(s *session.Session, name string, filter string, duration string, startDate string, endDate string) (*logs.Logs, error) {
 	fn, err := p.FunctionByName(name)
 	if err != nil {
 		return nil, err
@@ -256,12 +260,39 @@ func (p *Project) Logs(s *session.Session, name string, filter string) (*logs.Lo
 	if err != nil {
 		return nil, err
 	}
+
 	l := &logs.Logs{
 		Service:       cloudwatchlogs.New(s),
 		Log:           log.Log,
 		GroupName:     fmt.Sprintf("/aws/lambda/%s", fnName),
 		FilterPattern: filter,
 	}
+
+	var parsedStartTime time.Time
+	var parsedEndTime time.Time
+
+	if duration != "" {
+		parsedDuration, err := time.ParseDuration(duration)
+		if err != nil {
+			return nil, err
+		}
+		parsedEndTime = time.Now()
+		parsedStartTime = parsedEndTime.Add(-parsedDuration)
+	} else if startDate != "" && endDate != "" {
+		parsedStartTime, err = time.Parse(TimeFormat, startDate)
+		parsedEndTime, err = time.Parse(TimeFormat, endDate)
+	} else {
+		parsedStartTime = time.Now()
+		parsedEndTime = parsedStartTime.Add(-time.Duration(1) * time.Minute)
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	l.StartTime = parsedStartTime
+	l.EndTime = parsedEndTime
+
 	return l, nil
 }
 
