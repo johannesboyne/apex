@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/apex/apex/event_sources/cron/mock"
 	"github.com/apex/apex/mock"
+	"github.com/apex/apex/sources/cron/mock"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudwatchevents"
 	"github.com/aws/aws-sdk-go/service/lambda"
