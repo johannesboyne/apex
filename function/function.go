@@ -63,6 +63,11 @@ type Config struct {
 	Shim        bool              `json:"shim"`
 	Environment map[string]string `json:"environment"`
 	Hooks       hooks.Hooks       `json:"hooks"`
+	Sources     Sources           `json:"sources"`
+}
+
+type Sources struct {
+	Schedule string `json:"schedule"`
 }
 
 // Function represents a Lambda function, with configuration loaded

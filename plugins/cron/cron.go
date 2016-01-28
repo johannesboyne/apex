@@ -1,7 +1,11 @@
 // Package cron implements an scheduled event source
 package cron
 
-import "github.com/apex/apex/function"
+import (
+	"fmt"
+
+	"github.com/apex/apex/function"
+)
 
 func init() {
 	function.RegisterPlugin("cron", &Plugin{})
@@ -22,6 +26,8 @@ func (p *Plugin) Run(hook function.Hook, fn *function.Function) error {
 
 func (p *Plugin) addCron(fn *function.Function) error {
 	fn.Log.Debug("add cron configuration")
+	fn.Log.Debug("FN")
+	fn.Log.Debug(fmt.Sprintf("%+v", fn))
 	//@TODO(jb): continue
 	return nil
 }
