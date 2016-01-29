@@ -10,8 +10,10 @@ func init() {
 	function.RegisterPlugin("cron", &Plugin{})
 }
 
+// Plugin implementation.
 type Plugin struct{}
 
+// PostDeploy adds the Cron Scheduled Event.
 func (p *Plugin) PostDeploy(fn *function.Function) error {
 	if &fn.Sources != nil && &fn.Sources.Schedule != nil {
 		return p.addCron(fn)
@@ -19,6 +21,7 @@ func (p *Plugin) PostDeploy(fn *function.Function) error {
 	return nil
 }
 
+// addCron builds the Cron Event.
 func (p *Plugin) addCron(fn *function.Function) error {
 	event := &cron.Cron{
 		Name:              "Cron_" + fn.FunctionName,

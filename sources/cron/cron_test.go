@@ -32,7 +32,7 @@ func TestPut(t *testing.T) {
 		Targets: []*cloudwatchevents.Target{
 			&cloudwatchevents.Target{
 				Arn: aws.String("functionarn"),
-				Id:  aws.String(fmt.Sprintf("%x", time.Now().Unix())),
+				Id:  aws.String("Cron_functionname"),
 			},
 		},
 	}).Return(&cloudwatchevents.PutTargetsOutput{

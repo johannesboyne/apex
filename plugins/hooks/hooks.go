@@ -46,7 +46,7 @@ func (p *Plugin) Deploy(fn *function.Function) error {
 	return p.run("deploy", fn.Hooks.Deploy, fn)
 }
 
-// Deployed runs the "deployed" hook commands.
+// PostDeploy runs the "postDeploy" hook commands.
 func (p *Plugin) PostDeploy(fn *function.Function) error {
 	return p.run("postDeployed", fn.Hooks.PostDeploy, fn)
 }

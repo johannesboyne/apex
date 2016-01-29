@@ -21,6 +21,7 @@ func (e *failedEntryCountError) Error() string {
 	return e.s
 }
 
+// Cron is the Scheduled Event implementation.
 type Cron struct {
 	Name              string
 	Description       string
@@ -50,7 +51,7 @@ func (c *Cron) connect(ruleName string) error {
 		Targets: []*cloudwatchevents.Target{
 			&cloudwatchevents.Target{
 				Arn: aws.String(c.FunctionArn),
-				Id:  aws.String(fmt.Sprintf("%x", time.Now().Unix())),
+				Id:  aws.String("Cron_" + c.FunctionName),
 			},
 		},
 	})
@@ -74,6 +75,7 @@ func (c *Cron) allow() error {
 	return err
 }
 
+// AddSchedule performs the Scheduled Event setup.
 func (c *Cron) AddSchedule() error {
 	// 1st Put schedule event to CloudWatch Events
 	_, err := c.put()
