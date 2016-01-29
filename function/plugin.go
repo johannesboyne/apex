@@ -2,6 +2,8 @@ package function
 
 import (
 	"fmt"
+
+	"github.com/apex/log"
 )
 
 // defaultPlugins are the default plugins which are required by Apex. Note that
@@ -15,6 +17,7 @@ var defaultPlugins = []string{
 	"hooks",
 	"env",
 	"shim",
+	"cron",
 }
 
 // Hook type.
@@ -47,6 +50,7 @@ var plugins = make(map[string]Plugin)
 
 // RegisterPlugin registers `plugin` by `name`.
 func RegisterPlugin(name string, plugin Plugin) {
+	log.Debug("Register Plugin: " + name)
 	plugins[name] = plugin
 }
 

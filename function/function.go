@@ -15,6 +15,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/service/cloudwatchevents/cloudwatcheventsiface"
 	"github.com/aws/aws-sdk-go/service/lambda"
 	"github.com/aws/aws-sdk-go/service/lambda/lambdaiface"
 	"github.com/dustin/go-humanize"
@@ -22,6 +23,7 @@ import (
 	"gopkg.in/validator.v2"
 
 	"github.com/apex/apex/hooks"
+	"github.com/apex/apex/sources"
 	"github.com/apex/apex/utils"
 	"github.com/apex/log"
 )
@@ -63,11 +65,7 @@ type Config struct {
 	Shim        bool              `json:"shim"`
 	Environment map[string]string `json:"environment"`
 	Hooks       hooks.Hooks       `json:"hooks"`
-	Sources     Sources           `json:"sources"`
-}
-
-type Sources struct {
-	Schedule string `json:"schedule"`
+	Sources     sources.Sources   `json:"sources"`
 }
 
 // Function represents a Lambda function, with configuration loaded
@@ -76,8 +74,10 @@ type Function struct {
 	Config
 	Name            string
 	FunctionName    string
+	FunctionArn     string
 	Path            string
 	Service         lambdaiface.LambdaAPI
+	CloudWatch      cloudwatcheventsiface.CloudWatchEventsAPI
 	Log             log.Interface
 	IgnoredPatterns []string
 }
@@ -173,7 +173,7 @@ func (f *Function) DeployCode() error {
 func (f *Function) DeployConfig() error {
 	f.Log.Info("deploying config")
 
-	_, err := f.Service.UpdateFunctionConfiguration(&lambda.UpdateFunctionConfigurationInput{
+	updated, err := f.Service.UpdateFunctionConfiguration(&lambda.UpdateFunctionConfigurationInput{
 		FunctionName: &f.FunctionName,
 		MemorySize:   &f.Memory,
 		Timeout:      &f.Timeout,
@@ -181,6 +181,8 @@ func (f *Function) DeployConfig() error {
 		Role:         &f.Role,
 		Handler:      &f.Handler,
 	})
+
+	f.FunctionArn = *updated.FunctionArn
 
 	return err
 }
@@ -257,6 +259,8 @@ func (f *Function) Create(zip []byte) error {
 	if err != nil {
 		return err
 	}
+
+	f.FunctionArn = *created.FunctionArn
 
 	f.Log.Info("creating alias")
 

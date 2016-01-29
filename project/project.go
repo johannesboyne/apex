@@ -14,6 +14,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/cloudwatchevents/cloudwatcheventsiface"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 	"github.com/aws/aws-sdk-go/service/lambda/lambdaiface"
 	"github.com/tj/go-sync/semaphore"
@@ -59,6 +60,7 @@ type Project struct {
 	Concurrency     int
 	Log             log.Interface
 	Service         lambdaiface.LambdaAPI
+	CloudWatch      cloudwatcheventsiface.CloudWatchEventsAPI
 	Functions       []*function.Function
 	IgnoredPatterns []string
 	nameTemplate    *template.Template

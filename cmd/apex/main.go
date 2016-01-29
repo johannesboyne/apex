@@ -7,6 +7,7 @@ import (
 	"github.com/apex/log"
 	"github.com/apex/log/handlers/cli"
 
+	_ "github.com/apex/apex/plugins/cron"
 	_ "github.com/apex/apex/plugins/env"
 	_ "github.com/apex/apex/plugins/golang"
 	_ "github.com/apex/apex/plugins/hooks"
