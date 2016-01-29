@@ -16,6 +16,7 @@ import (
 	"github.com/apex/log"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/service/cloudwatchevents/cloudwatcheventsiface"
 	"github.com/aws/aws-sdk-go/service/lambda"
 	"github.com/aws/aws-sdk-go/service/lambda/lambdaiface"
 	"github.com/dustin/go-humanize"
@@ -23,6 +24,7 @@ import (
 	"gopkg.in/validator.v2"
 
 	"github.com/apex/apex/hooks"
+	"github.com/apex/apex/sources"
 	"github.com/apex/apex/utils"
 )
 
@@ -37,6 +39,7 @@ var defaultPlugins = []string{
 	"hooks",
 	"env",
 	"shim",
+	"cron",
 }
 
 // InvocationType determines how an invocation request is made.
@@ -76,19 +79,22 @@ type Config struct {
 	Shim        bool              `json:"shim"`
 	Environment map[string]string `json:"environment"`
 	Hooks       hooks.Hooks       `json:"hooks"`
+	Sources     sources.Sources   `json:"sources"`
 }
 
 // Function represents a Lambda function, with configuration loaded
 // from the "function.json" file on disk.
 type Function struct {
 	Config
-	Name            string
-	FunctionName    string
-	Path            string
-	Service         lambdaiface.LambdaAPI
-	Log             log.Interface
-	IgnoredPatterns []string
-	Plugins         []string
+	Name             string
+	FunctionName     string
+	FunctionArn      string
+	Path             string
+	Service          lambdaiface.LambdaAPI
+	CloudWatchEvents cloudwatcheventsiface.CloudWatchEventsAPI
+	Log              log.Interface
+	IgnoredPatterns  []string
+	Plugins          []string
 }
 
 // Open the function.json file and prime the config.
@@ -182,11 +188,11 @@ func (f *Function) DeployCode() error {
 	return f.Update(zip)
 }
 
-// DeployConfig deploys changes to configuration.
+// DeployConfig deploys changes to configuration and trigger postDeploy hook
 func (f *Function) DeployConfig() error {
 	f.Log.Info("deploying config")
 
-	_, err := f.Service.UpdateFunctionConfiguration(&lambda.UpdateFunctionConfigurationInput{
+	updated, err := f.Service.UpdateFunctionConfiguration(&lambda.UpdateFunctionConfigurationInput{
 		FunctionName: &f.FunctionName,
 		MemorySize:   &f.Memory,
 		Timeout:      &f.Timeout,
@@ -194,6 +200,12 @@ func (f *Function) DeployConfig() error {
 		Role:         &f.Role,
 		Handler:      &f.Handler,
 	})
+
+	if err != nil {
+		return err
+	}
+
+	f.FunctionArn = *updated.FunctionArn
 
 	return err
 }
@@ -241,12 +253,14 @@ func (f *Function) Update(zip []byte) error {
 		return nil
 	}
 
+	f.FunctionArn = *updated.FunctionArn
+
 	f.Log.WithFields(log.Fields{
 		"version": *updated.Version,
 		"name":    f.FunctionName,
 	}).Info("deployed")
 
-	return nil
+	return f.hookPostDeploy()
 }
 
 // Create the function with the given `zip`.
@@ -266,6 +280,8 @@ func (f *Function) Create(zip []byte) error {
 			ZipFile: zip,
 		},
 	})
+
+	f.FunctionArn = *created.FunctionArn
 
 	if err != nil {
 		return err
@@ -512,6 +528,18 @@ func (f *Function) hookDeploy() error {
 		if p, ok := plugins[name].(Deployer); ok {
 			if err := p.Deploy(f); err != nil {
 				return fmt.Errorf("deploy hook: %s", err)
+			}
+		}
+	}
+	return nil
+}
+
+// hookPostDeploy calls Deployers.
+func (f *Function) hookPostDeploy() error {
+	for _, name := range f.Plugins {
+		if p, ok := plugins[name].(PostDeployer); ok {
+			if err := p.PostDeploy(f); err != nil {
+				return fmt.Errorf("deployed hook: %s", err)
 			}
 		}
 	}

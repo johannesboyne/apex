@@ -7,6 +7,7 @@ import (
 	"os/exec"
 
 	"github.com/apex/log"
+	"github.com/jpillora/archive"
 
 	"github.com/apex/apex/function"
 )
@@ -31,7 +32,7 @@ func (e *HookError) Error() string {
 type Plugin struct{}
 
 // Build runs the "build" hook commands.
-func (p *Plugin) Build(fn *function.Function) error {
+func (p *Plugin) Build(fn *function.Function, zip *archive.Archive) error {
 	return p.run("build", fn.Hooks.Build, fn)
 }
 
@@ -43,6 +44,11 @@ func (p *Plugin) Clean(fn *function.Function) error {
 // Deploy runs the "deploy" hook commands.
 func (p *Plugin) Deploy(fn *function.Function) error {
 	return p.run("deploy", fn.Hooks.Deploy, fn)
+}
+
+// Deployed runs the "deployed" hook commands.
+func (p *Plugin) PostDeploy(fn *function.Function) error {
+	return p.run("postDeployed", fn.Hooks.PostDeploy, fn)
 }
 
 // run a hook command.

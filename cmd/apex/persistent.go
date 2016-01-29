@@ -7,6 +7,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/cloudwatchevents"
 	"github.com/aws/aws-sdk-go/service/lambda"
 	"github.com/spf13/cobra"
 
@@ -53,6 +54,7 @@ func (pv *persistentValues) preRun(c *cobra.Command, args []string) {
 		pv.project.Concurrency = 1
 	} else {
 		pv.project.Service = lambda.New(pv.session)
+		pv.project.CloudWatchEvents = cloudwatchevents.New(pv.session)
 	}
 
 	if pv.Chdir != "" {

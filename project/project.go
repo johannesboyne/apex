@@ -15,6 +15,7 @@ import (
 	"github.com/apex/log"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/cloudwatchevents/cloudwatcheventsiface"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 	"github.com/aws/aws-sdk-go/service/lambda/lambdaiface"
 	"github.com/tj/go-sync/semaphore"
@@ -52,13 +53,14 @@ type Config struct {
 // Project represents zero or more Lambda functions.
 type Project struct {
 	Config
-	Path            string
-	Concurrency     int
-	Log             log.Interface
-	Service         lambdaiface.LambdaAPI
-	Functions       []*function.Function
-	IgnoredPatterns []string
-	nameTemplate    *template.Template
+	Path             string
+	Concurrency      int
+	Log              log.Interface
+	Service          lambdaiface.LambdaAPI
+	CloudWatchEvents cloudwatcheventsiface.CloudWatchEventsAPI
+	Functions        []*function.Function
+	IgnoredPatterns  []string
+	nameTemplate     *template.Template
 }
 
 // defaults applies configuration defaults.
@@ -292,11 +294,12 @@ func (p *Project) loadFunction(name string) (*function.Function, error) {
 			Hooks:       p.Hooks,
 			Environment: copyStringMap(p.Environment),
 		},
-		Name:            name,
-		Path:            dir,
-		Service:         p.Service,
-		Log:             p.Log,
-		IgnoredPatterns: p.IgnoredPatterns,
+		Name:             name,
+		Path:             dir,
+		Service:          p.Service,
+		CloudWatchEvents: p.CloudWatchEvents,
+		Log:              p.Log,
+		IgnoredPatterns:  p.IgnoredPatterns,
 	}
 
 	if name, err := p.name(fn); err == nil {

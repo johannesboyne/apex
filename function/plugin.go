@@ -29,6 +29,11 @@ type Deployer interface {
 	Deploy(*Function) error
 }
 
+// PostDeployer reacts to the PostDeploy hook.
+type PostDeployer interface {
+	PostDeploy(*Function) error
+}
+
 // Registered plugins.
 var plugins = make(map[string]Plugin)
 

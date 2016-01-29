@@ -10,4 +10,7 @@ type Hooks struct {
 
 	// Deploy command is run after builds and before deploys.
 	Deploy string `json:"deploy"`
+
+	// PostDeploy command is run after deploys.
+	PostDeploy string `json:"postDeploy"`
 }
