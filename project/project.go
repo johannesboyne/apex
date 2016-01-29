@@ -10,20 +10,16 @@ import (
 	"os"
 	"path/filepath"
 	"text/template"
-	"time"
 
 	"github.com/apex/log"
 	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudwatchevents/cloudwatcheventsiface"
-	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 	"github.com/aws/aws-sdk-go/service/lambda/lambdaiface"
 	"github.com/tj/go-sync/semaphore"
 	"gopkg.in/validator.v2"
 
 	"github.com/apex/apex/function"
 	"github.com/apex/apex/hooks"
-	"github.com/apex/apex/logs"
 	"github.com/apex/apex/utils"
 )
 
@@ -171,7 +167,13 @@ func (p *Project) Deploy() error {
 
 			go func() {
 				defer sem.Release()
-				errs <- fn.Deploy()
+
+				err := fn.Deploy()
+				if err != nil {
+					err = fmt.Errorf("function %s: %s", fn.Name, err)
+				}
+
+				errs <- err
 			}()
 		}
 
@@ -194,7 +196,7 @@ func (p *Project) Clean() error {
 
 	for _, fn := range p.Functions {
 		if err := fn.Clean(); err != nil {
-			return err
+			return fmt.Errorf("function %s: %s", fn.Name, err)
 		}
 	}
 
@@ -211,11 +213,11 @@ func (p *Project) Delete() error {
 				p.Log.Infof("function %q hasn't been deployed yet or has been deleted manually on AWS Lambda", fn.Name)
 				continue
 			}
-			return err
+			return fmt.Errorf("function %s: %s", fn.Name, err)
 		}
 
 		if err := fn.Delete(); err != nil {
-			return err
+			return fmt.Errorf("function %s: %s", fn.Name, err)
 		}
 	}
 
@@ -238,37 +240,6 @@ func (p *Project) FunctionDirNames() (list []string, err error) {
 	}
 
 	return list, nil
-}
-
-// Logs returns logs.
-func (p *Project) Logs(s *session.Session, filter string, duration string) (*logs.Logs, error) {
-	fnName, err := p.name(p.Functions[0])
-	if err != nil {
-		return nil, err
-	}
-
-	l := &logs.Logs{
-		Service:       cloudwatchlogs.New(s),
-		Log:           log.Log,
-		GroupName:     fmt.Sprintf("/aws/lambda/%s", fnName),
-		FilterPattern: filter,
-	}
-
-	start := time.Now().Add(-time.Minute)
-	end := time.Now()
-
-	if duration != "" {
-		d, err := time.ParseDuration(duration)
-		if err != nil {
-			return nil, err
-		}
-		start = time.Now().Add(-d)
-	}
-
-	l.StartTime = start
-	l.EndTime = end
-
-	return l, nil
 }
 
 // Setenv sets environment variable `name` to `value` on every function in project.
