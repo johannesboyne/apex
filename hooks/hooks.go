@@ -12,5 +12,5 @@ type Hooks struct {
 	Deploy string `json:"deploy"`
 
 	// PostDeploy command is run after deploys.
-	PostDeploy string `json:"postDeploy"`
+	PostDeploy string `json:"deployed"`
 }

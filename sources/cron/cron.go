@@ -3,6 +3,7 @@
 package cron
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
@@ -12,14 +13,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/lambda"
 	"github.com/aws/aws-sdk-go/service/lambda/lambdaiface"
 )
-
-type failedEntryCountError struct {
-	s string
-}
-
-func (e *failedEntryCountError) Error() string {
-	return e.s
-}
 
 // Cron is the Scheduled Event implementation.
 type Cron struct {
@@ -34,9 +27,9 @@ type Cron struct {
 
 func (c *Cron) put() (string, error) {
 	res, err := c.CloudWatchService.PutRule(&cloudwatchevents.PutRuleInput{
-		Description:        aws.String(c.Description),
-		Name:               aws.String(c.Name),
-		ScheduleExpression: aws.String(c.Expression),
+		Description:        &c.Description,
+		Name:               &c.Name,
+		ScheduleExpression: &c.Expression,
 		State:              aws.String("ENABLED"),
 	})
 	if err != nil {
@@ -59,7 +52,7 @@ func (c *Cron) connect(ruleName string) error {
 		return err
 	}
 	if *res.FailedEntryCount > 0.0 {
-		return &failedEntryCountError{"failed entry count > 0"}
+		return errors.New("failed entry count > 0")
 	}
 	return err
 }

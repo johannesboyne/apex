@@ -88,7 +88,6 @@ type Function struct {
 	Config
 	Name             string
 	FunctionName     string
-	FunctionArn      string
 	Path             string
 	Service          lambdaiface.LambdaAPI
 	CloudWatchEvents cloudwatcheventsiface.CloudWatchEventsAPI
@@ -188,11 +187,11 @@ func (f *Function) DeployCode() error {
 	return f.Update(zip)
 }
 
-// DeployConfig deploys changes to configuration and trigger postDeploy hook
+// DeployConfig deploys changes to configuration.
 func (f *Function) DeployConfig() error {
 	f.Log.Info("deploying config")
 
-	updated, err := f.Service.UpdateFunctionConfiguration(&lambda.UpdateFunctionConfigurationInput{
+	_, err := f.Service.UpdateFunctionConfiguration(&lambda.UpdateFunctionConfigurationInput{
 		FunctionName: &f.FunctionName,
 		MemorySize:   &f.Memory,
 		Timeout:      &f.Timeout,
@@ -200,12 +199,6 @@ func (f *Function) DeployConfig() error {
 		Role:         &f.Role,
 		Handler:      &f.Handler,
 	})
-
-	if err != nil {
-		return err
-	}
-
-	f.FunctionArn = *updated.FunctionArn
 
 	return err
 }
@@ -267,8 +260,6 @@ func (f *Function) Update(zip []byte) error {
 		return nil
 	}
 
-	f.FunctionArn = *updated.FunctionArn
-
 	f.Log.WithFields(log.Fields{
 		"version": *updated.Version,
 		"name":    f.FunctionName,
@@ -294,8 +285,6 @@ func (f *Function) Create(zip []byte) error {
 			ZipFile: zip,
 		},
 	})
-
-	f.FunctionArn = *created.FunctionArn
 
 	if err != nil {
 		return err
